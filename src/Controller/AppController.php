@@ -28,7 +28,7 @@ final class AppController extends AbstractController
                 'success_criteria'=>$c['critere_reussite'],'support'=>$c['support_methode']
             ]);
         }
-        return new Response('<h1>Cap CM1 installé</h1><p><a href="/login">Se connecter</a></p><p>Identifiant : enseignant@capcm1.local<br>Mot de passe temporaire : Changez-moi-2026!</p>');
+        return new Response('<h1>Mon Atelier de Classe est installé</h1><p><a href="/login">Se connecter</a></p><p>Identifiant : enseignant@capcm1.local<br>Mot de passe temporaire : Changez-moi-2026!</p>');
     }
 
     #[Route('/login', name:'login', methods:['GET','POST'])]
@@ -99,7 +99,7 @@ final class AppController extends AbstractController
     {
         if(!$this->user($r)) return $this->json(['error'=>'Non authentifié'],401);
         $out=['version'=>1,'exported_at'=>date(DATE_ATOM)];foreach(['class_settings','prep_sheets','sequences','journal_entries'] as $t)$out[$t]=$db->fetchAllAssociative("SELECT * FROM $t");
-        $res=$this->json($out);$res->headers->set('Content-Disposition','attachment; filename="capcm1-sauvegarde-'.date('Y-m-d').'.json"');return $res;
+        $res=$this->json($out);$res->headers->set('Content-Disposition','attachment; filename="mon-atelier-de-classe-sauvegarde-'.date('Y-m-d').'.json"');return $res;
     }
 
     #[Route('/restore', name:'restore', methods:['POST'])]

@@ -1,4 +1,4 @@
-# Cap CM1
+# Mon Atelier de Classe
 
 Application personnelle de pilotage pédagogique pour une classe de CM1 : référentiel BO, programmation, cahier journal, fiches de préparation, séquences, paramètres de classe, exports et sauvegardes.
 

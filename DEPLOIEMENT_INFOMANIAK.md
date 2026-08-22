@@ -1,4 +1,4 @@
-# Déploiement de Cap CM1 sur Infomaniak
+# Déploiement de Mon Atelier de Classe sur Infomaniak
 
 ## Prérequis
 
@@ -23,7 +23,7 @@
 
 ## Sauvegardes
 
-- Utiliser le bouton **Sauvegarder** dans Cap CM1 pour exporter les données pédagogiques en JSON.
+- Utiliser le bouton **Sauvegarder** dans Mon Atelier de Classe pour exporter les données pédagogiques en JSON.
 - Activer aussi les sauvegardes automatiques MySQL et fichiers depuis le Manager Infomaniak.
 
 ## Sécurité
