@@ -18,3 +18,6 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+# Données nominatives de la classe : stockage local uniquement
+/data/students.local.json
