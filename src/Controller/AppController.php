@@ -107,7 +107,11 @@ final class AppController extends AbstractController
     {
         if($g=$this->guard($r)) return $g;
         if(!hash_equals((string)$r->getSession()->get('csrf'),(string)$r->request->get('_token'))) throw $this->createAccessDeniedException();
-        $p=(string)$r->request->get('password'); if(strlen($p)>=10)$db->update('users',['password_hash'=>password_hash($p,PASSWORD_DEFAULT),'name'=>(string)$r->request->get('name')],['id'=>$this->user($r)['id']]);
+        $id=(int)$this->user($r)['id'];$name=trim((string)$r->request->get('name'));$email=mb_strtolower(trim((string)$r->request->get('email')));$p=(string)$r->request->get('password');
+        if(!$name || !filter_var($email,FILTER_VALIDATE_EMAIL)) return new Response('Nom ou adresse électronique invalide.',422);
+        if((int)$db->fetchOne('SELECT COUNT(*) FROM users WHERE email=? AND id<>?',[$email,$id])) return new Response('Cette adresse électronique est déjà utilisée.',409);
+        $changes=['name'=>$name,'email'=>$email];if($p!==''){if(strlen($p)<10)return new Response('Le mot de passe doit contenir au moins 10 caractères.',422);$changes['password_hash']=password_hash($p,PASSWORD_DEFAULT);}
+        $db->update('users',$changes,['id'=>$id]);$r->getSession()->set('user',['id'=>$id,'name'=>$name,'email'=>$email]);
         return new RedirectResponse($r->getBaseUrl().'/');
     }
 
