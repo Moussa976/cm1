@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Fournitures de {{ student.display_name }}</title>
+    <style>
+        :root{--ink:#17324d;--blue:#247ba0;--line:#cfd9de;--ok:#287a48;--buy:#b34836;--replace:#8a650c}*{box-sizing:border-box}body{margin:0;background:#eef3f5;color:var(--ink);font:14px Arial,sans-serif}.sheet{width:min(210mm,100%);min-height:297mm;margin:20px auto;background:#fff;padding:15mm;box-shadow:0 8px 35px #17324d22}.top{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid var(--ink);padding-bottom:12px}.top h1{font:700 25px Georgia,serif;margin:4px 0}.top p{margin:3px 0}.date{text-align:right;color:#607582}.intro{margin:18px 0;padding:12px;background:#eaf3f6;border-radius:8px}.group{margin-top:18px}.group h2{font:700 18px Georgia,serif;margin:0;padding:8px 10px;background:var(--ink);color:#fff}.item{display:grid;grid-template-columns:38px 1fr 125px;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-top:0}.qty{font-weight:800}.status{font-weight:800;text-align:center;border-radius:5px;padding:5px}.present{background:#e0f1e6;color:var(--ok)}.missing{background:#f9e3de;color:var(--buy)}.replace{background:#fff0c9;color:var(--replace)}.unchecked{background:#edf0f2;color:#667982}.legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:18px;font-size:12px}.legend span:before{content:'□';font-size:17px;margin-right:5px}.actions{text-align:center;margin:18px}.actions button{border:0;border-radius:8px;background:#ed7d61;color:#fff;padding:11px 18px;font-weight:800;cursor:pointer}.footer{margin-top:22px;border-top:1px solid var(--line);padding-top:10px;font-size:11px;color:#6d7f89}@media print{body{background:#fff}.sheet{width:auto;min-height:0;margin:0;padding:8mm;box-shadow:none}.actions{display:none}.item{break-inside:avoid}.group{break-inside:avoid}}
+    </style>
+</head>
+<body>
+<div class="actions"><button onclick="window.print()">Imprimer cette fiche</button></div>
+<main class="sheet">
+    <header class="top"><div><p>{{ settings.school|default('Mon Atelier de Classe') }}</p><h1>Récapitulatif des fournitures</h1><p><strong>Élève :</strong> {{ student.display_name }}</p><p><strong>Classe :</strong> {{ settings.class_name|default('CM1') }} · {{ settings.school_year|default('2026–2027') }}</p></div><div class="date">Édité le {{ printed_at|date('d/m/Y') }}</div></header>
+    <p class="intro">Cette fiche indique le matériel déjà vérifié et ce qu’il reste à acheter ou à remplacer. Merci de rapporter les fournitures manquantes dès que possible.</p>
+    {% set categories = [] %}{% for item in items %}{% if item.category not in categories %}{% set categories = categories|merge([item.category]) %}{% endif %}{% endfor %}
+    {% for category in categories %}<section class="group"><h2>{{ category }}</h2>{% for item in items|filter(i => i.category == category) %}{% set labels = {'present':'OK','missing':'À acheter','replace':'À remplacer','unchecked':'Non vérifié'} %}<div class="item"><span class="qty">{{ item.expected_quantity }} ×</span><span>{{ item.label }}</span><span class="status {{ item.status }}">{{ labels[item.status]|default('Non vérifié') }}</span></div>{% endfor %}</section>{% endfor %}
+    <div class="legend"><span>Vérifié et disponible</span><span>À acheter</span><span>À remplacer</span></div>
+    <p class="footer">Document de suivi remis à la famille. Les statuts correspondent au dernier contrôle enregistré par l’enseignant.</p>
+</main>
+</body>
+</html>

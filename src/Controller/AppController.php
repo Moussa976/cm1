@@ -67,6 +67,17 @@ final class AppController extends AbstractController
         return $this->render('app.html.twig',['user'=>$this->user($r),'stats'=>$stats,'csrf'=>$token]);
     }
 
+    #[Route('/students/{id}/supplies/print', name:'student_supplies_print', requirements:['id'=>'\d+'])]
+    public function studentSuppliesPrint(int $id, Request $r, Connection $db): Response
+    {
+        if($g=$this->guard($r)) return $g;
+        $student=$db->fetchAssociative('SELECT * FROM students WHERE id=? AND active=1',[$id]);
+        if(!$student) throw $this->createNotFoundException('Élève introuvable.');
+        $items=$db->fetchAllAssociative('SELECT i.*,COALESCE(s.status,\'unchecked\') status,s.checked_at FROM supply_items i LEFT JOIN student_supply_status s ON s.supply_item_id=i.id AND s.student_id=? WHERE i.active=1 ORDER BY i.sort_order',[$id]);
+        $settings=$db->fetchAssociative('SELECT * FROM class_settings ORDER BY id LIMIT 1') ?: [];
+        return $this->render('supply_print.html.twig',['student'=>$student,'items'=>$items,'settings'=>$settings,'printed_at'=>new \DateTimeImmutable()]);
+    }
+
     #[Route('/api/{resource}', name:'api', methods:['GET','POST','PUT','DELETE'])]
     public function api(string $resource, Request $r, Connection $db): JsonResponse
     {
