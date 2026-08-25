@@ -18,6 +18,8 @@ final class AppController extends AbstractController
         if($installToken==='' || !hash_equals($installToken,(string)$r->query->get('token'))) throw $this->createAccessDeniedException();
         $sql = file_get_contents($this->getParameter('kernel.project_dir').'/data/schema.sql');
         foreach (array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/', $sql))) as $q) $db->executeStatement($q);
+        $statusColumns=$db->createSchemaManager()->listTableColumns('student_supply_status');
+        if(!isset($statusColumns['missing_quantity'])) $db->executeStatement('ALTER TABLE student_supply_status ADD missing_quantity INT NOT NULL DEFAULT 0 AFTER status');
         if (!(int)$db->fetchOne('SELECT COUNT(*) FROM users')) {
             $db->insert('users',['email'=>'enseignant@capcm1.local','name'=>'Enseignant CM1','password_hash'=>'$2y$10$PZoyWYq/7cdo9cW5ZLgjAOalxU0lCDxrlHCUVU9NAO5yFh6bX/4ra','created_at'=>date('Y-m-d H:i:s')]);
         }
@@ -73,7 +75,7 @@ final class AppController extends AbstractController
         if($g=$this->guard($r)) return $g;
         $students=$db->fetchAllAssociative('SELECT * FROM students WHERE active=1 ORDER BY sort_order,display_name');
         $items=$db->fetchAllAssociative('SELECT * FROM supply_items WHERE active=1 ORDER BY sort_order');
-        $statuses=[];foreach($db->fetchAllAssociative('SELECT student_id,supply_item_id,status FROM student_supply_status') as $s)$statuses[$s['student_id']][$s['supply_item_id']]=$s['status'];
+        $statuses=[];foreach($db->fetchAllAssociative('SELECT student_id,supply_item_id,status,missing_quantity FROM student_supply_status') as $s)$statuses[$s['student_id']][$s['supply_item_id']]=$s;
         $settings=$db->fetchAssociative('SELECT * FROM class_settings ORDER BY id LIMIT 1') ?: [];
         return $this->render('supply_print_all.html.twig',['students'=>$students,'items'=>$items,'statuses'=>$statuses,'settings'=>$settings,'printed_at'=>new \DateTimeImmutable()]);
     }
@@ -84,7 +86,7 @@ final class AppController extends AbstractController
         if($g=$this->guard($r)) return $g;
         $student=$db->fetchAssociative('SELECT * FROM students WHERE id=? AND active=1',[$id]);
         if(!$student) throw $this->createNotFoundException('Élève introuvable.');
-        $items=$db->fetchAllAssociative('SELECT i.*,COALESCE(s.status,\'unchecked\') status,s.checked_at FROM supply_items i LEFT JOIN student_supply_status s ON s.supply_item_id=i.id AND s.student_id=? WHERE i.active=1 ORDER BY i.sort_order',[$id]);
+        $items=$db->fetchAllAssociative('SELECT i.*,COALESCE(s.status,\'unchecked\') status,COALESCE(s.missing_quantity,0) missing_quantity,s.checked_at FROM supply_items i LEFT JOIN student_supply_status s ON s.supply_item_id=i.id AND s.student_id=? WHERE i.active=1 ORDER BY i.sort_order',[$id]);
         $settings=$db->fetchAssociative('SELECT * FROM class_settings ORDER BY id LIMIT 1') ?: [];
         return $this->render('supply_print.html.twig',['student'=>$student,'items'=>$items,'settings'=>$settings,'printed_at'=>new \DateTimeImmutable()]);
     }
@@ -111,12 +113,14 @@ final class AppController extends AbstractController
             'settings'=>['school','teacher','class_name','student_count','school_year','week_days','day_start','day_end','breaks','location'],
             'students'=>['display_name','sort_order','active'],
             'supplies'=>['category','label','expected_quantity','sort_order','active'],
-            'supply-status'=>['student_id','supply_item_id','status','note','checked_at'],
+            'supply-status'=>['student_id','supply_item_id','status','missing_quantity','note','checked_at'],
         ]; if(!isset($allowed[$resource])) return $this->json(['error'=>'Lecture seule'],405);
         $data=[];foreach($allowed[$resource] as $f)if(array_key_exists($f,$p))$data[$f]=is_array($p[$f])?json_encode($p[$f],JSON_UNESCAPED_UNICODE):$p[$f];
         if($resource==='journal' && !empty($data['competency_id'])) $data['subject']=(string)$db->fetchOne('SELECT subject FROM competencies WHERE id=?',[$data['competency_id']]);
         if($resource==='supply-status'){
             if(!in_array($data['status']??'', ['unchecked','present','missing','replace'], true)) return $this->json(['error'=>'Statut invalide'],422);
+            $expected=(int)$db->fetchOne('SELECT expected_quantity FROM supply_items WHERE id=?',[(int)($data['supply_item_id']??0)]);
+            $data['missing_quantity']=$data['status']==='missing'?max(1,min($expected,(int)($data['missing_quantity']??$expected))):0;
             $data['checked_at']=($data['status']==='unchecked')?null:date('Y-m-d H:i:s');
             $id=(int)$db->fetchOne('SELECT id FROM student_supply_status WHERE student_id=? AND supply_item_id=?',[(int)($data['student_id']??0),(int)($data['supply_item_id']??0)]);
         }
