@@ -1,0 +1,12 @@
+DirectoryIndex public/index.php
+
+RewriteEngine On
+
+# Ne jamais exposer les fichiers internes du dépôt ou de configuration.
+RewriteRule ^(?:\.git|\.env|config|data|src|templates|vendor|var)(?:/|$) - [R=404,L,NC]
+
+# Les ressources publiques restent servies directement par Apache.
+RewriteRule ^(app\.(?:css|js)|documents/.*)$ public/$1 [L,NC]
+
+# Toutes les pages applicatives passent par Symfony.
+RewriteRule ^ public/index.php [L,QSA]
