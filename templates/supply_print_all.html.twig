@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Toutes les fiches de fournitures</title>
+    <style>
+        :root{--ink:#17324d;--line:#cfd9de;--ok:#287a48;--buy:#b34836;--replace:#8a650c}*{box-sizing:border-box}body{margin:0;background:#eef3f5;color:var(--ink);font:12px Arial,sans-serif}.actions{position:sticky;top:0;z-index:2;text-align:center;padding:12px;background:#eef3f5}.actions button{border:0;border-radius:8px;background:#ed7d61;color:#fff;padding:11px 18px;font-weight:800;cursor:pointer}.sheet{width:min(210mm,100%);min-height:297mm;margin:15px auto;background:#fff;padding:10mm 13mm;box-shadow:0 8px 35px #17324d22;page-break-after:always}.sheet:last-child{page-break-after:auto}.top{display:flex;justify-content:space-between;gap:15px;border-bottom:3px solid var(--ink);padding-bottom:8px}.top h1{font:700 21px Georgia,serif;margin:3px 0}.top p{margin:2px 0}.date{text-align:right;color:#607582}.intro{margin:10px 0;padding:8px;background:#eaf3f6;border-radius:7px}.group{margin-top:10px}.group h2{font:700 15px Georgia,serif;margin:0;padding:5px 8px;background:var(--ink);color:#fff}.item{display:grid;grid-template-columns:34px 1fr 108px;gap:8px;align-items:center;padding:5px 8px;border:1px solid var(--line);border-top:0}.qty{font-weight:800}.status{font-weight:800;text-align:center;border-radius:4px;padding:3px}.present{background:#e0f1e6;color:var(--ok)}.missing{background:#f9e3de;color:var(--buy)}.replace{background:#fff0c9;color:var(--replace)}.unchecked{background:#edf0f2;color:#667982}.footer{margin-top:10px;border-top:1px solid var(--line);padding-top:7px;font-size:10px;color:#6d7f89}@media print{@page{size:A4;margin:0}body{background:#fff}.actions{display:none}.sheet{width:210mm;height:297mm;min-height:0;margin:0;padding:9mm 13mm;box-shadow:none;overflow:hidden}.group,.item{break-inside:avoid}}
+    </style>
+</head>
+<body>
+<div class="actions"><button onclick="window.print()">Imprimer ou enregistrer toutes les fiches en PDF</button></div>
+{% set categories = [] %}{% for item in items %}{% if item.category not in categories %}{% set categories = categories|merge([item.category]) %}{% endif %}{% endfor %}
+{% set labels = {'present':'OK','missing':'À acheter','replace':'À remplacer','unchecked':'Non vérifié'} %}
+{% for student in students %}<main class="sheet"><header class="top"><div><p>{{ settings.school|default('Mon Atelier de Classe') }}</p><h1>Récapitulatif des fournitures</h1><p><strong>Élève :</strong> {{ student.display_name }}</p><p><strong>Classe :</strong> {{ settings.class_name|default('CM1') }} · {{ settings.school_year|default('2026–2027') }}</p></div><div class="date">Édité le {{ printed_at|date('d/m/Y') }}<br>Fiche {{ loop.index }}/{{ students|length }}</div></header><p class="intro">Matériel disponible et fournitures restant à acheter ou à remplacer.</p>{% for category in categories %}<section class="group"><h2>{{ category }}</h2>{% for item in items|filter(i => i.category == category) %}{% set status = statuses[student.id][item.id]|default('unchecked') %}<div class="item"><span class="qty">{{ item.expected_quantity }} ×</span><span>{{ item.label }}</span><span class="status {{ status }}">{{ labels[status]|default('Non vérifié') }}</span></div>{% endfor %}</section>{% endfor %}<p class="footer">Document de suivi remis à la famille. Les statuts correspondent au dernier contrôle enregistré par l’enseignant.</p></main>{% endfor %}
+</body>
+</html>

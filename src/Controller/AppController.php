@@ -67,6 +67,17 @@ final class AppController extends AbstractController
         return $this->render('app.html.twig',['user'=>$this->user($r),'stats'=>$stats,'csrf'=>$token]);
     }
 
+    #[Route('/students/supplies/print-all', name:'student_supplies_print_all')]
+    public function studentSuppliesPrintAll(Request $r, Connection $db): Response
+    {
+        if($g=$this->guard($r)) return $g;
+        $students=$db->fetchAllAssociative('SELECT * FROM students WHERE active=1 ORDER BY sort_order,display_name');
+        $items=$db->fetchAllAssociative('SELECT * FROM supply_items WHERE active=1 ORDER BY sort_order');
+        $statuses=[];foreach($db->fetchAllAssociative('SELECT student_id,supply_item_id,status FROM student_supply_status') as $s)$statuses[$s['student_id']][$s['supply_item_id']]=$s['status'];
+        $settings=$db->fetchAssociative('SELECT * FROM class_settings ORDER BY id LIMIT 1') ?: [];
+        return $this->render('supply_print_all.html.twig',['students'=>$students,'items'=>$items,'statuses'=>$statuses,'settings'=>$settings,'printed_at'=>new \DateTimeImmutable()]);
+    }
+
     #[Route('/students/{id}/supplies/print', name:'student_supplies_print', requirements:['id'=>'\d+'])]
     public function studentSuppliesPrint(int $id, Request $r, Connection $db): Response
     {
