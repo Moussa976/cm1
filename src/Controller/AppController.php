@@ -14,7 +14,8 @@ final class AppController extends AbstractController
     #[Route('/install', name:'install')]
     public function install(Request $r, Connection $db): Response
     {
-        if(!hash_equals((string)($_ENV['INSTALL_TOKEN']??''),(string)$r->query->get('token'))) throw $this->createAccessDeniedException();
+        $installToken=(string)($_ENV['INSTALL_TOKEN']??'');
+        if($installToken==='' || !hash_equals($installToken,(string)$r->query->get('token'))) throw $this->createAccessDeniedException();
         $sql = file_get_contents($this->getParameter('kernel.project_dir').'/data/schema.sql');
         foreach (array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/', $sql))) as $q) $db->executeStatement($q);
         if (!(int)$db->fetchOne('SELECT COUNT(*) FROM users')) {
