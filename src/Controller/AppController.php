@@ -10,6 +10,16 @@ final class AppController extends AbstractController
 {
     private function user(Request $r): ?array { return $r->getSession()->get('user'); }
     private function guard(Request $r): ?Response { return $this->user($r) ? null : new RedirectResponse($r->getBaseUrl().'/login'); }
+    private function seedCompetencies(Connection $db): void
+    {
+        if ((int)$db->fetchOne('SELECT COUNT(*) FROM competencies')) return;
+        $data=json_decode(file_get_contents($this->getParameter('kernel.project_dir').'/data/referentiel.json'),true);
+        foreach($data['competences'] as $c) $db->insert('competencies',[
+            'code'=>$c['id'],'subject'=>$c['matiere'],'domain'=>$c['domaine'],'period'=>$c['periode_introduction'],
+            'reactivation'=>$c['periodes_reactivation'],'competency'=>$c['competence_bo'],'objective'=>$c['objectif_pedagogique'],
+            'success_criteria'=>$c['critere_reussite'],'support'=>$c['support_methode']
+        ]);
+    }
 
     #[Route('/install', name:'install')]
     public function install(Request $r, Connection $db): Response
@@ -23,14 +33,7 @@ final class AppController extends AbstractController
         if (!(int)$db->fetchOne('SELECT COUNT(*) FROM users')) {
             $db->insert('users',['email'=>'enseignant@capcm1.local','name'=>'Enseignant CM1','password_hash'=>'$2y$10$PZoyWYq/7cdo9cW5ZLgjAOalxU0lCDxrlHCUVU9NAO5yFh6bX/4ra','created_at'=>date('Y-m-d H:i:s')]);
         }
-        if (!(int)$db->fetchOne('SELECT COUNT(*) FROM competencies')) {
-            $data=json_decode(file_get_contents($this->getParameter('kernel.project_dir').'/data/referentiel.json'),true);
-            foreach($data['competences'] as $c) $db->insert('competencies',[
-                'code'=>$c['id'],'subject'=>$c['matiere'],'domain'=>$c['domaine'],'period'=>$c['periode_introduction'],
-                'reactivation'=>$c['periodes_reactivation'],'competency'=>$c['competence_bo'],'objective'=>$c['objectif_pedagogique'],
-                'success_criteria'=>$c['critere_reussite'],'support'=>$c['support_methode']
-            ]);
-        }
+        $this->seedCompetencies($db);
         $studentSeed=$this->getParameter('kernel.project_dir').'/data/students.local.json';
         if (!(int)$db->fetchOne('SELECT COUNT(*) FROM students') && is_file($studentSeed)) {
             $students=json_decode(file_get_contents($studentSeed),true);
@@ -64,6 +67,7 @@ final class AppController extends AbstractController
     public function home(Request $r, Connection $db): Response
     {
         if($g=$this->guard($r)) return $g;
+        $this->seedCompetencies($db);
         $stats=['competencies'=>(int)$db->fetchOne('SELECT COUNT(*) FROM competencies'),'preps'=>(int)$db->fetchOne('SELECT COUNT(*) FROM prep_sheets'),'sequences'=>(int)$db->fetchOne('SELECT COUNT(*) FROM sequences'),'journal'=>(int)$db->fetchOne('SELECT COUNT(*) FROM journal_entries'),'students'=>(int)$db->fetchOne('SELECT COUNT(*) FROM students WHERE active=1')];
         $token=bin2hex(random_bytes(24)); $r->getSession()->set('csrf',$token);
         return $this->render('app.html.twig',['user'=>$this->user($r),'stats'=>$stats,'csrf'=>$token]);
